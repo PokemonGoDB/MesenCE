@@ -163,6 +163,7 @@
     <ClInclude Include="SimpleLock.h" />
     <ClInclude Include="Socket.h" />
     <ClInclude Include="spng.h" />
+    <ClInclude Include="WonderGate\wg.h" />
     <ClInclude Include="StringUtilities.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="UPnPPortMapper.h" />
@@ -263,6 +264,7 @@
       <Filter>Video</Filter>
     </ClCompile>
     <ClCompile Include="spng.c" />
+    <ClCompile Include="WonderGate\wg.c" />
     <ClCompile Include="Audio\blip_buf.cpp">
       <Filter>Audio</Filter>
     </ClCompile>

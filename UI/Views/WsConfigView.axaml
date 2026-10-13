@@ -119,5 +119,38 @@
 				</StackPanel>
 			</ScrollViewer>
 		</TabItem>
+		<TabItem Header="{l:Translate tpgWonderGate}">
+			<ScrollViewer AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" Padding="0 0 2 0">
+				<StackPanel>
+					<CheckBox IsChecked="{Binding Config.WonderGateEnabled}" Content="{l:Translate chkWonderGateEnabled}" />
+					<TextBlock Text="{l:Translate lblWonderGateHelp}" TextWrapping="Wrap" MaxWidth="460" HorizontalAlignment="Left" Margin="22 0 5 5" />
+
+					<c:OptionSection Header="{l:Translate grpWonderGateAccount}">
+						<StackPanel Orientation="Horizontal" IsVisible="{Binding WonderGateLinked}">
+							<TextBlock Text="{Binding WonderGateLinkedAs}" VerticalAlignment="Center" />
+							<Button Margin="10 0 0 0" Command="{Binding UnlinkWonderGate}" Content="{l:Translate btnWonderGateUnlink}" />
+						</StackPanel>
+						<StackPanel IsVisible="{Binding WonderGateUnlinked}">
+							<TextBlock Text="{l:Translate lblWonderGateLinkHelp}" TextWrapping="Wrap" MaxWidth="460" HorizontalAlignment="Left" />
+							<StackPanel Orientation="Horizontal" Margin="0 5 0 0">
+								<TextBlock Text="{l:Translate lblWonderGateCode}" VerticalAlignment="Center" />
+								<TextBox Text="{Binding WonderGateCode}" Width="120" Margin="5 0" />
+								<Button Command="{Binding LinkWonderGate}" IsEnabled="{Binding !WonderGateBusy}" Content="{l:Translate btnWonderGateLink}" />
+							</StackPanel>
+							<TextBlock Text="{Binding WonderGateStatus}" TextWrapping="Wrap" MaxWidth="460" HorizontalAlignment="Left" Margin="0 5 0 0" />
+						</StackPanel>
+					</c:OptionSection>
+
+					<c:OptionSection Header="{l:Translate grpWonderGateServer}">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock Text="{l:Translate lblWonderGateServer}" VerticalAlignment="Center" />
+							<TextBox Text="{Binding Config.WonderGateServer}" Width="300" Margin="5 0 0 0" />
+							<Button Margin="5 0 0 0" Command="{Binding UseDefaultWonderGateServer}" IsEnabled="{Binding !WonderGateIsDefaultServer}" Content="{l:Translate btnWonderGateDefaultServer}" />
+						</StackPanel>
+						<TextBlock Text="{l:Translate lblWonderGateServerHelp}" TextWrapping="Wrap" MaxWidth="460" HorizontalAlignment="Left" Margin="0 5 0 0" />
+					</c:OptionSection>
+				</StackPanel>
+			</ScrollViewer>
+		</TabItem>
 	</TabControl>
 </UserControl>

@@ -13,6 +13,9 @@
 #include "WS/WsDmaController.h"
 #include "WS/WsEeprom.h"
 #include "WS/WsSerial.h"
+#include "WS/WsSerialDevice.h"
+#include "WS/WsSerialTcpDevice.h"
+#include "WS/WsWonderGateDevice.h"
 #include "WS/WsDefaultVideoFilter.h"
 #include "WS/APU/WsApu.h"
 #include "Shared/CpuType.h"
@@ -166,7 +169,18 @@ LoadRomResult WsConsole::LoadRom(VirtualFile& romFile)
 	_memoryManager.reset(new WsMemoryManager());
 	_cpu.reset(new WsCpu(_emu, this, _memoryManager.get()));
 	_timer.reset(new WsTimer());
-	_serial.reset(new WsSerial(this));
+	_serial.reset(new WsSerial(_emu, this));
+	//EXT port: the WonderGate adapter when it's switched on and the UI's relay is listening;
+	//otherwise a TCP serial bridge if MESEN_WS_SERIAL_TCP is set (development, link tools)
+	WsConfig& wsCfg = _emu->GetSettings()->GetWsConfig();
+	if(wsCfg.WonderGateEnabled && wsCfg.WonderGateRelayPort) {
+		_serialDevice.reset(new WsWonderGateDevice(wsCfg.WonderGateRelayPort));
+		MessageManager::Log("[WS] WonderGate adapter connected to the EXT port");
+	} else {
+		_serialDevice = WsSerialTcpDevice::FromEnvironment();
+	}
+	_serial->SetDevice(_serialDevice.get());
+	_powerOnInputRead = false;
 	_dmaController.reset(new WsDmaController());
 	_ppu.reset(new WsPpu(_emu, this, _memoryManager.get(), _timer.get(), _workRam));
 	_apu.reset(new WsApu(_emu, this, _memoryManager.get(), _dmaController.get()));
@@ -188,6 +202,14 @@ LoadRomResult WsConsole::LoadRom(VirtualFile& romFile)
 void WsConsole::RunFrame()
 {
 	uint32_t frameCount = _ppu->GetFrameCount();
+	if(!_powerOnInputRead) {
+		//Input is normally read at the end of a frame, so buttons held at power-on would be missed by
+		//games that check for them in the first frame (hidden menus such as D's Garage 21's WonderGate)
+		_powerOnInputRead = true;
+		if(frameCount == 0) {
+			_controlManager->RefreshHostInput();
+		}
+	}
 	while(frameCount == _ppu->GetFrameCount()) {
 		_cpu->Exec();
 	}

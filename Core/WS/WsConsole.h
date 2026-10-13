@@ -10,6 +10,7 @@ class WsApu;
 class WsCart;
 class WsTimer;
 class WsSerial;
+class IWsSerialDevice;
 class WsMemoryManager;
 class WsControlManager;
 class WsDmaController;
@@ -29,6 +30,8 @@ private:
 	unique_ptr<WsCart> _cart;
 	unique_ptr<WsTimer> _timer;
 	unique_ptr<WsSerial> _serial;
+	unique_ptr<IWsSerialDevice> _serialDevice;
+	bool _powerOnInputRead = false;
 	unique_ptr<WsMemoryManager> _memoryManager;
 	unique_ptr<WsControlManager> _controlManager;
 	unique_ptr<WsDmaController> _dmaController;

@@ -152,6 +152,21 @@ void BaseControlManager::ClearDevices()
 	}
 }
 
+void BaseControlManager::RefreshHostInput()
+{
+	if(!_inputProviders.empty()) {
+		return;
+	}
+
+	KeyManager::RefreshKeyState();
+	auto lock = _deviceLock.AcquireSafe();
+	for(shared_ptr<BaseControlDevice>& device : _controlDevices) {
+		device->ClearState();
+		device->SetStateFromInput();
+		device->OnAfterSetState();
+	}
+}
+
 void BaseControlManager::UpdateInputState()
 {
 	KeyManager::RefreshKeyState();

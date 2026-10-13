@@ -280,6 +280,7 @@
 			<Control ID="tpgVideo">Video</Control>
 			<Control ID="lblMiscSettings">Miscellaneous Settings</Control>
 
+
 			<Control ID="lblHighResBlendMode">High resolution blend mode: </Control>
 			<Control ID="lblColorCorrection">Color correction: </Control>
 			<Control ID="lblDeinterlaceMode">Deinterlace mode: </Control>
@@ -674,6 +675,18 @@
 			<Control ID="lblPlayer1Vertical">Controller (Vertical)</Control>
 			<Control ID="lblPlayer1Pcv2">Controller (Pocket Challenge V2)</Control>
 			<Control ID="btnSetup">Setup</Control>
+			<Control ID="tpgWonderGate">WonderGate</Control>
+			<Control ID="chkWonderGateEnabled">Connect a WonderGate adapter (play online)</Control>
+			<Control ID="lblWonderGateHelp">Games with WonderGate support can post scores, see rankings, and get extras through a WonderGate server. Takes effect the next time you power on the game.</Control>
+			<Control ID="grpWonderGateAccount">Account</Control>
+			<Control ID="lblWonderGateLinkHelp">Optional: put your name on your scores. Get a code from your server's website (Swan Revival: sign in at swanrevival.com/account/ and choose "Link a console"), then enter it here.</Control>
+			<Control ID="lblWonderGateCode">Link code:</Control>
+			<Control ID="btnWonderGateLink">Link</Control>
+			<Control ID="btnWonderGateUnlink">Unlink</Control>
+			<Control ID="grpWonderGateServer">Server</Control>
+			<Control ID="lblWonderGateServer">Address:</Control>
+			<Control ID="btnWonderGateDefaultServer">Use default</Control>
+			<Control ID="lblWonderGateServerHelp">Swan Revival runs the default server. Any server that supports the same WonderGate tunnel can be used instead: enter its address here. Your account link stays with the server it was made on.</Control>
 		</Form>
 		
 		<Form ID="ShortcutKeysTabView">
@@ -1781,6 +1794,9 @@
 		</Form>
 	</Forms>
 	<Messages>
+		<Message ID="WonderGateLinkedAs">Linked as {0} on {1}.</Message>
+		<Message ID="WonderGateLinking">Linking...</Message>
+		<Message ID="WonderGateLinkFailed">Couldn't link: {0}</Message>
 		<Message ID="LastSession">Last Session</Message>
 		<Message ID="AutoSave">Auto-save</Message>
 		<Message ID="SlotNumber">Slot #{0}</Message>

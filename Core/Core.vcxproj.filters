@@ -2913,6 +2913,15 @@
     <ClInclude Include="WS\WsSerial.h">
       <Filter>WS</Filter>
     </ClInclude>
+    <ClInclude Include="WS\WsSerialDevice.h">
+      <Filter>WS</Filter>
+    </ClInclude>
+    <ClInclude Include="WS\WsSerialTcpDevice.h">
+      <Filter>WS</Filter>
+    </ClInclude>
+    <ClInclude Include="WS\WsWonderGateDevice.h">
+      <Filter>WS</Filter>
+    </ClInclude>
     <ClInclude Include="NES\Epsm.h">
       <Filter>NES</Filter>
     </ClInclude>
@@ -3348,6 +3357,12 @@
       <Filter>WS\Debugger</Filter>
     </ClCompile>
     <ClCompile Include="WS\WsSerial.cpp">
+      <Filter>WS</Filter>
+    </ClCompile>
+    <ClCompile Include="WS\WsSerialTcpDevice.cpp">
+      <Filter>WS</Filter>
+    </ClCompile>
+    <ClCompile Include="WS\WsWonderGateDevice.cpp">
       <Filter>WS</Filter>
     </ClCompile>
     <ClCompile Include="WS\WsDefaultVideoFilter.cpp">

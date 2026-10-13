@@ -188,6 +188,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ArchiveReader.h" />
+    <ClInclude Include="WonderGate\wg.h" />
     <ClInclude Include="Audio\BiquadCascadeFilter.h" />
     <ClInclude Include="Audio\BiquadFilter.h" />
     <ClInclude Include="Audio\blip_buf.h" />
@@ -400,6 +401,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='PGO Profile|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='PGO Optimize|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="WonderGate\wg.c">
+      <!-- Vendored C (see WonderGate/README.md): standard C calls MSVC flags as unsafe -->
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>Default</CompileAs>
+      <SDLCheck>false</SDLCheck>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

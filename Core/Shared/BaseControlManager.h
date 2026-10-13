@@ -42,6 +42,9 @@ public:
 
 	virtual void UpdateControlDevices() {}
 	virtual void UpdateInputState();
+	//Read the buttons held on the host right now, without polling input providers or recording.
+	//Does nothing while a movie, netplay or another input provider is attached.
+	void RefreshHostInput();
 
 	void ProcessEndOfFrame();
 

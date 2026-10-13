@@ -22,6 +22,8 @@ public:
 	void SetConnectionErrorFlag();
 
 	void Close();
+	//Half-close: stop sending and/or receiving, keeping the socket open
+	void Shutdown(bool send, bool receive);
 	bool ConnectionError();
 
 	void Bind(uint16_t port);

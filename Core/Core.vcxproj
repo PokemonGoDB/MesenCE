@@ -813,6 +813,9 @@
     <ClInclude Include="WS\WsMemoryManager.h" />
     <ClInclude Include="WS\WsPpu.h" />
     <ClInclude Include="WS\WsSerial.h" />
+    <ClInclude Include="WS\WsSerialDevice.h" />
+    <ClInclude Include="WS\WsSerialTcpDevice.h" />
+    <ClInclude Include="WS\WsWonderGateDevice.h" />
     <ClInclude Include="WS\WsTimer.h" />
     <ClInclude Include="WS\WsTypes.h" />
   </ItemGroup>
@@ -1129,6 +1132,8 @@
     <ClCompile Include="WS\WsMemoryManager.cpp" />
     <ClCompile Include="WS\WsPpu.cpp" />
     <ClCompile Include="WS\WsSerial.cpp" />
+    <ClCompile Include="WS\WsSerialTcpDevice.cpp" />
+    <ClCompile Include="WS\WsWonderGateDevice.cpp" />
     <ClCompile Include="WS\WsTimer.cpp" />
   </ItemGroup>
   <ItemGroup>

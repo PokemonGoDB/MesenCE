@@ -29,6 +29,8 @@ using namespace std;
 	#define SOCKADDR sockaddr
 	#define TIMEVAL timeval
 	#define SD_SEND SHUT_WR
+	#define SD_RECEIVE SHUT_RD
+	#define SD_BOTH SHUT_RDWR
 	#define closesocket close
 	#define WSAEWOULDBLOCK EWOULDBLOCK
 	#define ioctlsocket ioctl
@@ -110,6 +112,13 @@ void Socket::Close()
 	shutdown(_socket, SD_SEND);
 	closesocket(_socket);
 	SetConnectionErrorFlag();
+}
+
+void Socket::Shutdown(bool send, bool receive)
+{
+	if(send || receive) {
+		shutdown(_socket, send && receive ? SD_BOTH : (send ? SD_SEND : SD_RECEIVE));
+	}
 }
 
 bool Socket::ConnectionError()

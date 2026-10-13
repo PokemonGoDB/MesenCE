@@ -852,6 +852,11 @@ struct WsConfig
 	uint32_t Channel3Vol = 100;
 	uint32_t Channel4Vol = 100;
 	uint32_t Channel5Vol = 100;
+
+	//MobileWonderGate adapter on the EXT port. The UI carries its connections to the server
+	//through a local relay port (0 = not listening).
+	bool WonderGateEnabled = false;
+	uint16_t WonderGateRelayPort = 0;
 };
 
 struct AudioPlayerConfig

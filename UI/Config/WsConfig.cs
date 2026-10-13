@@ -1,10 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Mesen.Interop;
+using Mesen.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Mesen.Config;
@@ -37,8 +39,24 @@ public partial class WsConfig : BaseConfig<WsConfig>
 	[ObservableProperty][MinMax(0, 100)] public partial UInt32 Channel4Vol { get; set; } = 100;
 	[ObservableProperty][MinMax(0, 100)] public partial UInt32 Channel5Vol { get; set; } = 100;
 
+	//MobileWonderGate adapter: online features through a WonderGate server. Swan Revival by default;
+	//any server that speaks the same tunnel protocol can be used instead (see WonderGateRelay).
+	public const string DefaultWonderGateServer = "wss://wg.swanrevival.com/tunnel";
+	[ObservableProperty] public partial bool WonderGateEnabled { get; set; } = false;
+	[ObservableProperty] public partial string WonderGateServer { get; set; } = DefaultWonderGateServer;
+	//Account link: the token is only ever sent to the server that issued it
+	[ObservableProperty] public partial string WonderGateToken { get; set; } = "";
+	[ObservableProperty] public partial string WonderGateTokenServer { get; set; } = "";
+	[ObservableProperty] public partial string WonderGateHandle { get; set; } = "";
+
+	/// <summary>The link token for the current server, or "" (a token from another server is never sent).</summary>
+	[JsonIgnore] public string WonderGateTokenForServer => WonderGateRelay.SameServer(WonderGateTokenServer, WonderGateServer) ? WonderGateToken : "";
+
 	public void ApplyConfig()
 	{
+		WonderGateRelay.Instance.Update(this);
+		WonderGateRelay relay = WonderGateRelay.Instance;
+
 		ControllerHorizontal.Type = ControllerType.WsController;
 		ControllerVertical.Type = ControllerType.WsControllerVertical;
 		ControllerPcv2.Type = ControllerType.Pcv2Controller;
@@ -67,6 +85,9 @@ public partial class WsConfig : BaseConfig<WsConfig>
 			Channel3Vol = Channel3Vol,
 			Channel4Vol = Channel4Vol,
 			Channel5Vol = Channel5Vol,
+
+			WonderGateEnabled = WonderGateEnabled && relay.Running,
+			WonderGateRelayPort = relay.Port,
 		});
 	}
 
@@ -104,6 +125,9 @@ public struct InteropWsConfig
 	public UInt32 Channel3Vol;
 	public UInt32 Channel4Vol;
 	public UInt32 Channel5Vol;
+
+	[MarshalAs(UnmanagedType.I1)] public bool WonderGateEnabled;
+	public UInt16 WonderGateRelayPort;
 }
 
 public enum WsModel : byte

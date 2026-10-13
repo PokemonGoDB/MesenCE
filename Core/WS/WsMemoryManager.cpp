@@ -413,6 +413,10 @@ uint8_t WsMemoryManager::GetActiveIrqs()
 	if(_serial->HasSendIrq() && (_state.EnabledIrqs & (uint8_t)WsIrqSource::UartSendReady)) {
 		_state.ActiveIrqs |= (uint8_t)WsIrqSource::UartSendReady;
 	}
+	//Level-triggered like send-ready: asserted while a received byte waits to be read
+	if(_serial->HasReceiveIrq() && (_state.EnabledIrqs & (uint8_t)WsIrqSource::UartRecvReady)) {
+		_state.ActiveIrqs |= (uint8_t)WsIrqSource::UartRecvReady;
+	}
 	return _state.ActiveIrqs;
 }
 
