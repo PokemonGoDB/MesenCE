@@ -232,6 +232,12 @@ jobs:
           ENTITLEMENTS: UI/Mesen.entitlements
           SIGNING_IDENTITY: Mesen
         run: |
+          # Forks don't get the signing certificate: sign ad hoc instead (Gatekeeper approval, as with the self-signed builds)
+          if [ -z "$CERT_DATA" ]; then
+            echo "[INFO] No signing certificate: signing ad hoc"
+            codesign --force --deep --options=runtime --entitlements "$ENTITLEMENTS" --sign - "$APP_NAME"
+            exit 0
+          fi
           # Export certs
           echo "$CERT_DATA" | base64 --decode > /tmp/certs.p12
           # Create keychain

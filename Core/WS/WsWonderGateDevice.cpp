@@ -15,9 +15,11 @@ static constexpr uint64_t QuietLineClocks = 3200 * 2;
 
 //How long a receive waits for a reply the game is expecting. A real adapter answered at once, but
 //the network is slower than a local adapter; waiting here hides that from games with short
-//timeouts (the emulation pauses briefly, as it would have on the phone line). Idle sockets that the
-//game is only polling are answered immediately with "no data".
-static constexpr int ReplyWaitMs = 2000;
+//timeouts (the emulation pauses briefly, as it would have on the phone line). Some games give up on
+//the first empty reply, so this covers a whole first exchange on a slow connection: opening the
+//tunnel (TLS) plus the server's work, often far from its database. Idle sockets that the game is
+//only polling are answered immediately with "no data".
+static constexpr int ReplyWaitMs = 6000;
 
 WsWonderGateDevice::WsWonderGateDevice(uint16_t relayPort)
 {
