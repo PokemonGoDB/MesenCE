@@ -677,16 +677,16 @@
 			<Control ID="btnSetup">Setup</Control>
 			<Control ID="tpgWonderGate">WonderGate</Control>
 			<Control ID="chkWonderGateEnabled">Connect a WonderGate adapter (play online)</Control>
-			<Control ID="lblWonderGateHelp">Games with WonderGate support can post scores, see rankings, and get extras through a WonderGate server. Takes effect the next time you power on the game.</Control>
+			<Control ID="lblWonderGateHelp">Games with WonderGate support can post scores, see rankings, and get extras through RevivalGate or another compatible server. Takes effect the next time you power on the game.</Control>
 			<Control ID="grpWonderGateAccount">Account</Control>
-			<Control ID="lblWonderGateLinkHelp">Optional: put your name on your scores. Get a code from your server's website (Swan Revival: sign in at swanrevival.com/account/ and choose "Link a console"), then enter it here.</Control>
+			<Control ID="lblWonderGateLinkHelp">Optional: put your name on your scores. Get a code from your server's website (RevivalGate: sign in at swanrevival.com/account/ and choose "Link a console"), then enter it here.</Control>
 			<Control ID="lblWonderGateCode">Link code:</Control>
 			<Control ID="btnWonderGateLink">Link</Control>
 			<Control ID="btnWonderGateUnlink">Unlink</Control>
 			<Control ID="grpWonderGateServer">Server</Control>
 			<Control ID="lblWonderGateServer">Address:</Control>
 			<Control ID="btnWonderGateDefaultServer">Use default</Control>
-			<Control ID="lblWonderGateServerHelp">Swan Revival runs the default server. Any server that supports the same WonderGate tunnel can be used instead: enter its address here. Your account link stays with the server it was made on.</Control>
+			<Control ID="lblWonderGateServerHelp">The default server is RevivalGate, run by Swan Revival. Any server that supports the same tunnel can be used instead: enter its address here. Your account link stays with the server it was made on.</Control>
 		</Form>
 		
 		<Form ID="ShortcutKeysTabView">

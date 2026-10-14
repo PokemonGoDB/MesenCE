@@ -39,7 +39,7 @@ public partial class WsConfig : BaseConfig<WsConfig>
 	[ObservableProperty][MinMax(0, 100)] public partial UInt32 Channel4Vol { get; set; } = 100;
 	[ObservableProperty][MinMax(0, 100)] public partial UInt32 Channel5Vol { get; set; } = 100;
 
-	//MobileWonderGate adapter: online features through a WonderGate server. Swan Revival by default;
+	//MobileWonderGate adapter: online features through a server. RevivalGate (Swan Revival's) by default;
 	//any server that speaks the same tunnel protocol can be used instead (see WonderGateRelay).
 	public const string DefaultWonderGateServer = "wss://wg.swanrevival.com/tunnel";
 	[ObservableProperty] public partial bool WonderGateEnabled { get; set; } = false;
