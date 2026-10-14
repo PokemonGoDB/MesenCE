@@ -126,6 +126,9 @@ int WsWonderGateDevice::SockConnect(void* ctx, int h, const uint8_t ip[4], uint1
 	}
 	char preamble[4] = { 'W', 'G', (char)(port >> 8), (char)(port & 0xFF) };
 	c->Sock->Send(preamble, sizeof(preamble), 0);
+	//Some servers speak first (Wonder Classic on 10000, mail): a game that receives before sending
+	//is waiting for that greeting, which has to come through the tunnel
+	c->AwaitingReply = true;
 	return c->Sock->ConnectionError() ? -1 : 0;
 }
 
