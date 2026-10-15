@@ -27,6 +27,12 @@
 /* Largest payload (cmd + params) the adapter accepts from the console. */
 #define WG_MAX_PAYLOAD   145
 
+/* Link-cable peer (our addition): Lode Runner's DATA I/O sends a map-editor
+ * slot record to "another console"; we play that console and upload the stage
+ * to WG_LINK_HOST (redirected to `server` like the game hosts). */
+#define WG_LR_RECORD     0x200
+#define WG_LINK_HOST     "link.swanrevival.com"
+
 typedef struct wg_ops {
   void *ctx;
   /* Bytes to the console. */
@@ -68,17 +74,28 @@ typedef struct wg {
   uint8_t server_ip[4];
   int     have_server_ip;
 
-  /* Frame parser. */
+  /* Frame parser. Nonzero rx_state = mid-frame or mid-link-transfer: the
+   * platform calls wg_rx_reset() after a pause. */
   int     rx_state;
   uint8_t rx_type, rx_len;
   uint8_t rx_buf[256];
   int     rx_got;
+
+  /* Link-cable peer (Lode Runner DATA I/O), see wg.c. */
+  int     lr_match;                        /* bytes of "SEND\0" seen between frames */
+  int     lr_state;
+  int     lr_waited;                       /* one quiet spell allowed before the record */
+  char    lr_word[8];                      /* handshake word being received */
+  int     lr_wlen;
+  uint8_t lr_rec[WG_LR_RECORD];
+  int     lr_got;
 } wg;
 
 enum { WG_STAT_OFF = 0, WG_STAT_ON = 2, WG_STAT_PPP = 3 };
 
 void wg_init(wg *g, const wg_ops *ops, const wg_config *cfg);
-/* Feed one byte from the console. Replies go out through ops->tx. */
+/* Feed one byte from the console. Replies go out through ops->tx. A finished
+ * link-cable stage transfer uploads from inside this call (blocking network). */
 void wg_rx(wg *g, uint8_t byte);
 /* Drop a half-received frame (call after ~500 ms of line silence). */
 void wg_rx_reset(wg *g);

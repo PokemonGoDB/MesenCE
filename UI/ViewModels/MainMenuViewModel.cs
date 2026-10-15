@@ -90,6 +90,28 @@ namespace Mesen.ViewModels
 			InitToolMenu(wnd);
 			InitDebugMenu(wnd);
 			InitHelpMenu(wnd);
+			WonderGateRelay.Instance.UnlinkedConnection += () => Dispatcher.UIThread.Post(() => PromptWonderGateLink(wnd));
+		}
+
+		//A game went online without an account: offer to link one, so scores carry the player's name
+		private async void PromptWonderGateLink(MainWindow wnd)
+		{
+			WsConfig cfg = ConfigManager.Config.Ws;
+			if(cfg.WonderGateLinkPromptDismissed || cfg.WonderGateTokenForServer.Length > 0) {
+				return;
+			}
+
+			DialogResult result = await MesenMsgBox.Show(wnd, "WonderGateLinkPrompt", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+			if(result == DialogResult.Yes) {
+				ApplicationHelper.OpenBrowser(WsConfig.DefaultWonderGateAccountUrl);
+				OpenConfig(wnd, ConfigWindowTab.Ws);
+				if(_cfgWindow?.DataContext is ConfigViewModel { Ws: WsConfigViewModel ws }) {
+					ws.SelectedTab = WsConfigTab.WonderGate;
+				}
+			} else if(result == DialogResult.No) {
+				cfg.WonderGateLinkPromptDismissed = true;
+				ConfigManager.Config.Save();
+			}
 		}
 
 		private void InitFileMenu(MainWindow wnd)

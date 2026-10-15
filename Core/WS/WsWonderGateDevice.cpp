@@ -62,7 +62,11 @@ void WsWonderGateDevice::OnSend(uint8_t value, uint64_t masterClock)
 
 bool WsWonderGateDevice::Receive(uint8_t& value, uint64_t masterClock)
 {
-	if(_gate.rx_state != 0 && masterClock - _lastSendClock > FrameGapClocks) {
+	//A pause ends a frame. Reset once per gap, not on every poll: Lode Runner's link transfer
+	//is allowed one quiet spell (the sender reads its EEPROM) before its record arrives
+	uint64_t quietSince = std::max(_lastSendClock, _lastResetClock);
+	if(_gate.rx_state != 0 && masterClock - quietSince > FrameGapClocks) {
+		_lastResetClock = masterClock;
 		wg_rx_reset(&_gate);
 	}
 

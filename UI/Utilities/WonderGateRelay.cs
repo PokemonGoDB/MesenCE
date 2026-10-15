@@ -33,6 +33,10 @@ public sealed class WonderGateRelay
 	private string _token = "";
 
 	public bool Running => _cts != null;
+
+	/// <summary>Raised once per run when a game reaches Swan Revival's server without a linked account.</summary>
+	public event Action? UnlinkedConnection;
+	private int _unlinkedRaised;
 	public ushort Port { get; private set; }
 
 	/// <summary>Start or stop to match the settings. Safe to call on every settings change.</summary>
@@ -117,6 +121,9 @@ public sealed class WonderGateRelay
 
 			await ws.ConnectAsync(new Uri(server), ct);
 			await ws.SendAsync(Hello(gamePort, token), WebSocketMessageType.Text, true, ct);
+			if(token.Length == 0 && SameServer(server, WsConfig.DefaultWonderGateServer) && Interlocked.Exchange(ref _unlinkedRaised, 1) == 0) {
+				UnlinkedConnection?.Invoke();
+			}
 
 			Task up = Upload(stream, ws, ct);
 			await Download(stream, ws, ct);

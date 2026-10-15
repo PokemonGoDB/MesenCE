@@ -128,6 +128,11 @@ namespace Mesen.Config
 				Ws.InitializeDefaults(DefaultKeyMappings);
 			}
 
+			if(ConfigUpgrade < (int)ConfigUpgradeHint.WonderGateOn) {
+				//Earlier builds saved WonderGate as off before it became the default
+				Ws.WonderGateEnabled = true;
+			}
+
 			if(ConfigUpgrade < (int)ConfigUpgradeHint.WindowsAudioLatency) {
 				//Set audio back down to 30ms when upgrading from DirectSound to WASAPI
 				if(OperatingSystem.IsWindows()) {
@@ -329,6 +334,7 @@ namespace Mesen.Config
 		CvInput,
 		WsInput,
 		WindowsAudioLatency,
+		WonderGateOn, //Swan Revival fork: keep this last when merging new upstream values
 		NextValue,
 	}
 }

@@ -170,14 +170,13 @@ LoadRomResult WsConsole::LoadRom(VirtualFile& romFile)
 	_cpu.reset(new WsCpu(_emu, this, _memoryManager.get()));
 	_timer.reset(new WsTimer());
 	_serial.reset(new WsSerial(_emu, this));
-	//EXT port: the WonderGate adapter when it's switched on and the UI's relay is listening;
-	//otherwise a TCP serial bridge if MESEN_WS_SERIAL_TCP is set (development, link tools)
+	//EXT port: a TCP serial bridge if MESEN_WS_SERIAL_TCP is set (development, link tools),
+	//otherwise the WonderGate adapter when it's switched on and the UI's relay is listening
 	WsConfig& wsCfg = _emu->GetSettings()->GetWsConfig();
-	if(wsCfg.WonderGateEnabled && wsCfg.WonderGateRelayPort) {
+	_serialDevice = WsSerialTcpDevice::FromEnvironment();
+	if(!_serialDevice && wsCfg.WonderGateEnabled && wsCfg.WonderGateRelayPort) {
 		_serialDevice.reset(new WsWonderGateDevice(wsCfg.WonderGateRelayPort));
 		MessageManager::Log("[WS] WonderGate adapter connected to the EXT port");
-	} else {
-		_serialDevice = WsSerialTcpDevice::FromEnvironment();
 	}
 	_serial->SetDevice(_serialDevice.get());
 	_powerOnInputRead = false;

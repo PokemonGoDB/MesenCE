@@ -14,7 +14,7 @@
 /* Socket ids handed to the console. WonderGateway's tested value; trap15 used 0x30. */
 #define WG_FIRST_SOCK 0
 
-enum { RX_TYPE, RX_ZERO, RX_LEN, RX_BODY };
+enum { RX_TYPE, RX_ZERO, RX_LEN, RX_BODY, RX_LINK };
 
 static void logf_(wg *g, const char *fmt, ...)
 {
@@ -110,6 +110,7 @@ void wg_config_defaults(wg_config *cfg)
     "homepage2.nifty.com",  /* Doraemon (developer test URLs) */
     "hpcgi2.nifty.com",
     "www.gwp3d.com",        /* in Digimon, Doraemon, Wonder Classic; purpose unknown */
+    WG_LINK_HOST,           /* ours: link-cable stage uploads (Lode Runner) */
   };
   size_t i;
 
@@ -184,6 +185,17 @@ static int ieq(const char *a, const char *b)
   while (*a && *b && tolower((unsigned char)*a) == tolower((unsigned char)*b))
     a++, b++;
   return *a == '\0' && *b == '\0';
+}
+
+/* Port remap for a connection to the configured server. */
+static uint16_t server_port(const wg_config *cfg, uint16_t port)
+{
+  int i;
+
+  for (i = 0; i < cfg->n_portmap; i++)
+    if (cfg->portmap[i].from == port)
+      return cfg->portmap[i].to;
+  return port;
 }
 
 int wg_name_redirected(const wg_config *cfg, const char *name)
@@ -359,7 +371,6 @@ static void cmd_sockcon(wg *g, const uint8_t *p, int n)
   int h = n > 0 ? host_sock(g, p[0]) : -1;
   uint16_t fam, port;
   const uint8_t *ip;
-  int i;
 
   if (h >= 0 && n >= 9) {
     fam = (uint16_t)(p[1] << 8 | p[2]);
@@ -373,9 +384,7 @@ static void cmd_sockcon(wg *g, const uint8_t *p, int n)
           g->ops->resolve(g->ops->ctx, g->cfg->server, g->server_ip) == 0)
         g->have_server_ip = 1;
       if (g->have_server_ip && !memcmp(ip, g->server_ip, 4))
-        for (i = 0; i < g->cfg->n_portmap; i++)
-          if (g->cfg->portmap[i].from == port)
-            real = g->cfg->portmap[i].to;
+        real = server_port(g->cfg, port);
       r[1] = g->ops->sock_connect(g->ops->ctx, h, ip, real) == 0;
       logf_(g, "# connect %02X to %u.%u.%u.%u:%u%s -> %s", p[0], ip[0], ip[1], ip[2], ip[3],
             port, real != port ? " (remapped)" : "", r[1] ? "ok" : "FAILED");
@@ -520,6 +529,211 @@ static void dispatch(wg *g, uint8_t type, uint8_t cmd, const uint8_t *p, int n)
   }
 }
 
+/* ---- link-cable peer: Lode Runner for WonderSwan, DATA I/O (our addition) ----
+ *
+ * DATA I/O sends a map-editor slot (MAP1/MAP2) to a second console over the
+ * link cable: same EXT port, same 9600 8-N-1 as the adapter. Its handshake is
+ * NUL-terminated ASCII words (SEND RECV OK NG SAME) and none starts with a
+ * WonderGate frame type, so a sending console is recognised by its "SEND\0"
+ * between frames; no mode switch. We answer as a console in receive mode
+ * ("RECV", then "OK"), the sender answers "OK" and streams the 0x200-byte slot
+ * record with no further acknowledgement. We check the record and upload it to
+ * our server. Protocol and ROM addresses: docs/wondergate/lode-runner.md. */
+
+enum { LR_HANDSHAKE = 1, LR_DATA };
+
+static const char lr_send[] = "SEND";       /* with its NUL: 5 bytes */
+
+static void lr_say(wg *g, const char *word)
+{
+  logf_(g, "# Lode Runner link: say \"%s\"", word);
+  send_raw(g, (const uint8_t *)word, strlen(word) + 1);
+}
+
+static void lr_stop(wg *g)
+{
+  g->lr_state = 0;
+  g->lr_match = 0;
+  g->rx_state = RX_TYPE;
+  g->rx_got = 0;
+}
+
+/* zlib's CRC-32 (the game's routine at 8000:7AB4), bitwise: no table to carry. */
+static uint32_t crc32_(const uint8_t *p, size_t n)
+{
+  uint32_t c = 0xFFFFFFFFu;
+  int k;
+
+  while (n--) {
+    c ^= *p++;
+    for (k = 0; k < 8; k++)
+      c = (c >> 1) ^ (0xEDB88320u & (0u - (c & 1)));
+  }
+  return ~c;
+}
+
+static int send_all(wg *g, int h, const uint8_t *p, size_t n)
+{
+  while (n) {
+    int k = g->ops->sock_send(g->ops->ctx, h, p, n);
+    if (k <= 0)
+      return -1;
+    p += k;
+    n -= (size_t)k;
+  }
+  return 0;
+}
+
+/* POST the record to our server through the platform's normal network path. */
+static void lr_upload(wg *g)
+{
+  int redirected = wg_name_redirected(g->cfg, WG_LINK_HOST);
+  const char *target = redirected ? g->cfg->server : WG_LINK_HOST;
+  uint16_t port = redirected ? server_port(g->cfg, 80) : 80;
+  char head[200], t[300];
+  uint8_t ip[4], resp[400];
+  int h, n, got = 0, waits = 0, status = 0, body = 0;
+
+  if (g->ops->resolve(g->ops->ctx, target, ip) != 0) {
+    logf_(g, "# Lode Runner link: lookup '%s' failed, stage not uploaded", target);
+    return;
+  }
+  if ((h = g->ops->sock_open(g->ops->ctx)) < 0) {
+    logf_(g, "# Lode Runner link: no socket, stage not uploaded");
+    return;
+  }
+  if (g->ops->sock_connect(g->ops->ctx, h, ip, port) != 0) {
+    logf_(g, "# Lode Runner link: connect %u.%u.%u.%u:%u failed, stage not uploaded",
+          ip[0], ip[1], ip[2], ip[3], port);
+    g->ops->sock_close(g->ops->ctx, h);
+    return;
+  }
+  n = snprintf(head, sizeof head, "POST /loderunner/stage HTTP/1.0\r\nHost: %s\r\n"
+               "Content-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n",
+               WG_LINK_HOST, WG_LR_RECORD);
+  logf_(g, "# Lode Runner link: POST http://%s/loderunner/stage via %u.%u.%u.%u:%u, %d bytes",
+        WG_LINK_HOST, ip[0], ip[1], ip[2], ip[3], port, WG_LR_RECORD);
+  if (send_all(g, h, (const uint8_t *)head, (size_t)n) || send_all(g, h, g->lr_rec, WG_LR_RECORD)) {
+    logf_(g, "# Lode Runner link: send failed, stage not uploaded");
+    g->ops->sock_close(g->ops->ctx, h);
+    return;
+  }
+  /* HTTP/1.0: the server closes after its reply. */
+  while (got < (int)sizeof resp) {
+    n = g->ops->sock_recv(g->ops->ctx, h, resp + got, sizeof resp - (size_t)got);
+    if (n == WG_RECV_NODATA && ++waits < 3)
+      continue;
+    if (n <= 0)
+      break;
+    got += n;
+  }
+  g->ops->sock_close(g->ops->ctx, h);
+
+  if (got > 9 && !memcmp(resp, "HTTP/", 5)) {
+    for (n = 5; n < got && resp[n] != ' '; n++)
+      ;
+    for (n++; n < got && resp[n] >= '0' && resp[n] <= '9'; n++)
+      status = status * 10 + (resp[n] - '0');
+  }
+  for (n = 0; n + 3 < got; n++)
+    if (!memcmp(resp + n, "\r\n\r\n", 4)) {
+      body = n + 4;
+      break;
+    }
+  text(t, sizeof t, resp + body, (size_t)(body ? got - body : got));
+  logf_(g, "# Lode Runner link: upload %s (HTTP %d): %s",
+        status >= 200 && status < 300 ? "accepted" : "FAILED", status, t);
+}
+
+/* The whole record is in: check it the way the game's slot loader does. */
+static void lr_finish(wg *g)
+{
+  const uint8_t *r = g->lr_rec;
+  uint32_t want = (uint32_t)r[0x1FA] | (uint32_t)r[0x1FB] << 8 | (uint32_t)r[0x1FC] << 16 | (uint32_t)r[0x1FD] << 24;
+  uint32_t crc = crc32_(r, 0x1FA);
+  const char *why = NULL;
+  int i;
+
+  lr_stop(g);
+  for (i = 0; i < 28 * 18 && !why; i++)
+    if (r[i] > 0x1E)
+      why = "tile value above 0x1E";
+  if (r[0x1FE] != 0x4C || r[0x1FF] != 0x97)
+    why = "no 4C 97 valid mark";
+  else if (crc != want)
+    why = "CRC-32 mismatch";
+  logf_(g, "# Lode Runner link: stage received, music %u, CRC %08lX %s",
+        (unsigned)(r[0x1F8] | r[0x1F9] << 8), (unsigned long)want, crc == want ? "ok" : "BAD");
+  if (why) {
+    logf_(g, "# Lode Runner link: record rejected (%s), not uploaded", why);
+    return;
+  }
+  lr_upload(g);
+}
+
+/* A handshake word arrived (its NUL just did). */
+static void lr_word(wg *g)
+{
+  const char *w = g->lr_word;
+
+  logf_(g, "# Lode Runner link: heard \"%s\"", w);
+  if (!strcmp(w, "OK")) {
+    /* Both sides have each other's mode: the record follows. */
+    g->lr_state = LR_DATA;
+    g->lr_got = 0;
+  } else if (!strcmp(w, "SEND")) {
+    lr_say(g, "OK");                       /* a repeat: answer it again */
+  } else if (!strcmp(w, "NG")) {
+    lr_say(g, "RECV");                     /* it missed our mode: say it again */
+  } else {
+    logf_(g, "# Lode Runner link: unexpected, transfer abandoned");
+    lr_stop(g);
+  }
+}
+
+static void lr_rx(wg *g, uint8_t b)
+{
+  if (g->lr_state == LR_DATA) {
+    g->lr_rec[g->lr_got++] = b;
+    if (g->lr_got == WG_LR_RECORD)
+      lr_finish(g);
+    return;
+  }
+  if (b) {
+    if (g->lr_wlen + 1 >= (int)sizeof g->lr_word) {
+      logf_(g, "# Lode Runner link: not a DATA I/O word, transfer abandoned");
+      lr_stop(g);
+      return;
+    }
+    g->lr_word[g->lr_wlen++] = (char)b;
+    return;
+  }
+  g->lr_word[g->lr_wlen] = '\0';
+  g->lr_wlen = 0;
+  lr_word(g);
+}
+
+/* Between frames: is this the opening "SEND\0" of a DATA I/O sender? Returns 1
+ * if the byte belongs to it (none of S E N D starts a frame anyway). */
+static int lr_detect(wg *g, uint8_t b)
+{
+  if (b != (uint8_t)lr_send[g->lr_match]) {
+    g->lr_match = b == (uint8_t)lr_send[0];
+    return g->lr_match;
+  }
+  if (++g->lr_match < (int)sizeof lr_send)
+    return 1;
+  logf_(g, "# Lode Runner link: a console is sending a stage (DATA I/O); answering as the receiving console");
+  g->lr_match = 0;
+  g->lr_state = LR_HANDSHAKE;
+  g->lr_wlen = 0;
+  g->lr_waited = 0;
+  g->rx_state = RX_LINK;
+  lr_say(g, "RECV");                       /* what a console in receive mode says */
+  lr_say(g, "OK");                         /* and its answer to "SEND" */
+  return 1;
+}
+
 /* ---- framing ---- */
 
 void wg_init(wg *g, const wg_ops *ops, const wg_config *cfg)
@@ -546,6 +760,20 @@ void wg_reset(wg *g)
 
 void wg_rx_reset(wg *g)
 {
+  if (g->rx_state == RX_LINK) {
+    /* After its "OK" the sender reads the slot from its EEPROM before the
+     * record starts: about 130 ms, longer than a short frame gap. */
+    if (g->lr_state == LR_DATA && g->lr_got == 0 && !g->lr_waited) {
+      g->lr_waited = 1;
+      logf_(g, "# Lode Runner link: waiting for the record (the sender reads its EEPROM first)");
+      return;
+    }
+    logf_(g, "# Lode Runner link: line quiet, transfer dropped (%d of %d record bytes)",
+          g->lr_state == LR_DATA ? g->lr_got : 0, WG_LR_RECORD);
+    lr_stop(g);
+    return;
+  }
+  g->lr_match = 0;
   if (g->rx_state != RX_TYPE)
     logf_(g, "# dropped partial frame (%d bytes)", g->rx_got);
   g->rx_state = RX_TYPE;
@@ -563,7 +791,12 @@ static int known_type(uint8_t b)
 void wg_rx(wg *g, uint8_t b)
 {
   switch (g->rx_state) {
+  case RX_LINK:
+    lr_rx(g, b);
+    return;
   case RX_TYPE:
+    if (lr_detect(g, b))
+      return;
     if (b == 0x00 && !g->awake) {
       /* Wake-up: a 00 burst to a sleeping adapter is answered with 55 x5
        * (Sennou Millennium's connect sequence: 00 x10, expect 55 x5, then power-on). */

@@ -33,6 +33,8 @@ private:
 	uint16_t _relayPort = 0;
 
 	uint64_t _lastSendClock = 0;
+
+	uint64_t _lastResetClock = 0; //last wg_rx_reset: once per quiet gap, as in the reference emulator
 	std::ofstream _trace;
 
 	static void Tx(void* ctx, const uint8_t* buf, size_t len);

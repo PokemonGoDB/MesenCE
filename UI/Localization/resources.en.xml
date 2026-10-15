@@ -1797,6 +1797,7 @@
 		<Message ID="WonderGateLinkedAs">Linked as {0} on {1}.</Message>
 		<Message ID="WonderGateLinking">Linking...</Message>
 		<Message ID="WonderGateLinkFailed">Couldn't link: {0}</Message>
+		<Message ID="WonderGateLinkPrompt">You're playing online through WonderGate, but this computer isn't linked to a Swan Revival account, so your scores are posted without your name.&#xA;&#xA;Link it now? Sign in at swanrevival.com, choose "Link a console", then enter the code on the WonderGate tab. Both open when you choose Yes.&#xA;&#xA;Choose No to stop asking. You can link any time in Settings, WonderSwan, WonderGate.</Message>
 		<Message ID="LastSession">Last Session</Message>
 		<Message ID="AutoSave">Auto-save</Message>
 		<Message ID="SlotNumber">Slot #{0}</Message>

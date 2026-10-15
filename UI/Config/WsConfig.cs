@@ -42,12 +42,17 @@ public partial class WsConfig : BaseConfig<WsConfig>
 	//MobileWonderGate adapter: online features through a server. RevivalGate (Swan Revival's) by default;
 	//any server that speaks the same tunnel protocol can be used instead (see WonderGateRelay).
 	public const string DefaultWonderGateServer = "wss://wg.swanrevival.com/tunnel";
-	[ObservableProperty] public partial bool WonderGateEnabled { get; set; } = false;
+	//Where players make an account and a link code for the default server
+	public const string DefaultWonderGateAccountUrl = "https://swanrevival.com/account/";
+	//On by default: this build exists to play WonderGate games online (the adapter only connects when a game dials)
+	[ObservableProperty] public partial bool WonderGateEnabled { get; set; } = true;
 	[ObservableProperty] public partial string WonderGateServer { get; set; } = DefaultWonderGateServer;
 	//Account link: the token is only ever sent to the server that issued it
 	[ObservableProperty] public partial string WonderGateToken { get; set; } = "";
 	[ObservableProperty] public partial string WonderGateTokenServer { get; set; } = "";
 	[ObservableProperty] public partial string WonderGateHandle { get; set; } = "";
+	//"No" on the offer to link an account (asked the first time a game goes online unlinked)
+	[ObservableProperty] public partial bool WonderGateLinkPromptDismissed { get; set; } = false;
 
 	/// <summary>The link token for the current server, or "" (a token from another server is never sent).</summary>
 	[JsonIgnore] public string WonderGateTokenForServer => WonderGateRelay.SameServer(WonderGateTokenServer, WonderGateServer) ? WonderGateToken : "";
