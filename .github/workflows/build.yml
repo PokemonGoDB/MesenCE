@@ -4,7 +4,7 @@ name: Build Mesen
 # pauses fork workflows that use too many runners; upstream's full matrix ran 15 jobs a push)
 on:
   push:
-    tags: ['wondergate-*']
+    tags: ['revivalgate-*', 'wondergate-*']
   workflow_dispatch:
 
 env:

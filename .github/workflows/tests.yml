@@ -3,7 +3,7 @@ name: Run tests
 # Swan Revival fork: on release tags or by hand, like build.yml
 on:
   push:
-    tags: ['wondergate-*']
+    tags: ['revivalgate-*', 'wondergate-*']
   workflow_dispatch:
 
 env:
