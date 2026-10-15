@@ -1,6 +1,11 @@
 name: Build Mesen
 
-on: [push, pull_request]
+# Swan Revival fork: build only the release downloads, on release tags or by hand (GitHub
+# pauses fork workflows that use too many runners; upstream's full matrix ran 15 jobs a push)
+on:
+  push:
+    tags: ['wondergate-*']
+  workflow_dispatch:
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -12,7 +17,6 @@ jobs:
     strategy:
       matrix:
         platform: [
-          {netversion: 10.x, targetframework: net10.0, aot: false, singleFile: true, aotString: ""},
           {netversion: 10.x, targetframework: net10.0, aot: true, singleFile: false, aotString: " - AoT"}
         ]
       fail-fast: false
@@ -66,16 +70,12 @@ jobs:
     if: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     strategy:
       matrix:
-        compiler: [gcc, clang, clang_aot]
+        compiler: [clang_aot]
         platform: [
           {os: ubuntu-22.04, path: x64, libraUrl: librashader-x64-ubuntu.zip},
           {os: ubuntu-22.04-arm, path: arm64, libraUrl: librashader-arm-ubuntu.zip}
         ]
         include:
-          - compiler: gcc
-            make_flags: "USE_GCC=true"
-          - compiler: clang
-            make_flags: ""
           - compiler: clang_aot
             make_flags: "USE_AOT=true"
       fail-fast: false
@@ -122,7 +122,7 @@ jobs:
           path: bin/linux-${{ matrix.platform.path }}/Release/linux-${{ matrix.platform.path }}/publish/Mesen
 
   appimage:
-    if: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
+    if: ${{ false }} # the release ships the AOT build; the AppImage needs .NET installed
     strategy:
       matrix:
         compiler: [clang_appimage]
@@ -177,14 +177,12 @@ jobs:
     if: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository) }}
     strategy:
       matrix:
-        compiler: [clang, clang_aot]
+        compiler: [clang_aot]
         platform: [
           {os: macos-15-intel, arch: x64},
           {os: macos-15, arch: arm64}
         ]
         include:
-          - compiler: clang
-            make_flags: ""
           - compiler: clang_aot
             make_flags: "USE_AOT=true"
       fail-fast: false

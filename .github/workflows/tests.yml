@@ -1,6 +1,10 @@
 name: Run tests
 
-on: [push, pull_request]
+# Swan Revival fork: on release tags or by hand, like build.yml
+on:
+  push:
+    tags: ['wondergate-*']
+  workflow_dispatch:
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
