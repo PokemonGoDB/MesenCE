@@ -3,6 +3,14 @@
 #include "Shared/MessageManager.h"
 #include "Utilities/Socket.h"
 
+//The WonderSwan's master clock
+static constexpr uint64_t ClocksPerSecond = 3072000;
+
+//How long the console is kept in real time waiting for an answer. Longer than any wait of a
+//WonderGate adapter program (wgcore-host waits up to 2 s per receive, a few times for HTTP); a peer
+//that never answers (a link cable with nobody on the other end) only slows emulation this long.
+static constexpr uint64_t MaxReplyWaitClocks = ClocksPerSecond * 10;
+
 WsSerialTcpDevice::WsSerialTcpDevice(const string& host, uint16_t port)
 {
 	_host = host;
@@ -20,6 +28,11 @@ WsSerialTcpDevice::~WsSerialTcpDevice()
 
 void WsSerialTcpDevice::OnSend(uint8_t value, uint64_t masterClock)
 {
+	if(!_awaitingReply) {
+		_awaitingReply = true;
+		_sendClock = masterClock;
+		_sendTime = std::chrono::steady_clock::now();
+	}
 	std::lock_guard<std::mutex> lock(_lock);
 	_toServer.push_back(value);
 }
@@ -27,8 +40,27 @@ void WsSerialTcpDevice::OnSend(uint8_t value, uint64_t masterClock)
 bool WsSerialTcpDevice::Receive(uint8_t& value, uint64_t masterClock)
 {
 	if(_pending == 0) {
-		return false;
+		//The other end (a WonderGate adapter program waiting on its server, say) answers in real
+		//time. An emulator running faster than real time (fast forward, the test runner) would make
+		//it look slow to the game, which counts frames: hold the console to real time until the
+		//answer comes. A real adapter's network wait costs a real console the same frames.
+		if(_awaitingReply) {
+			if(masterClock < _sendClock || masterClock - _sendClock > MaxReplyWaitClocks) {
+				_awaitingReply = false; //no answer coming, or a save state was loaded
+			} else {
+				auto emulated = std::chrono::microseconds((masterClock - _sendClock) * 1000000 / ClocksPerSecond);
+				auto ahead = emulated - (std::chrono::steady_clock::now() - _sendTime);
+				if(ahead > std::chrono::milliseconds(2)) {
+					std::unique_lock<std::mutex> lock(_lock);
+					_arrived.wait_for(lock, ahead, [this]() { return _pending > 0 || _stop; });
+				}
+			}
+		}
+		if(_pending == 0) {
+			return false;
+		}
 	}
+	_awaitingReply = false;
 	std::lock_guard<std::mutex> lock(_lock);
 	value = _toConsole.front();
 	_toConsole.pop_front();
@@ -68,6 +100,7 @@ void WsSerialTcpDevice::Run()
 			std::lock_guard<std::mutex> lock(_lock);
 			_toConsole.insert(_toConsole.end(), buffer, buffer + received);
 			_pending += received;
+			_arrived.notify_all();
 		} else if(received == 0 || socket->ConnectionError()) {
 			MessageManager::Log("[WS] Serial port disconnected from " + target);
 			socket.reset();
