@@ -134,8 +134,12 @@ public sealed class WonderGateRelay
 			EmuApi.WriteLogEntry("[WonderGate] Can't reach " + server + ": " + ex.Message);
 		} catch { }
 
-		if(ws.State == WebSocketState.Open) {
-			try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None); } catch { }
+		//Finish the close handshake, whichever side started it: when the server closed (the usual end of a
+		//game's connection) the state is CloseReceived, and leaving without answering drops the connection,
+		//which the server counts as a lost one
+		if(ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived) {
+			using CancellationTokenSource closeTimeout = new(2000);
+			try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "", closeTimeout.Token); } catch { }
 		}
 	}
 
