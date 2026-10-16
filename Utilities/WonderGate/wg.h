@@ -10,7 +10,8 @@
  * module firmware.
  *
  * Protocol knowledge: trap15's wonderfence (MIT, (C)2014 Alex Marshall),
- * the WSdev wiki, and a real-adapter capture. See docs/wondergate.md.
+ * the WSdev wiki, and Yuvi's real-adapter capture in WonderGateway (Keitai
+ * Archive; facts only, no code). See docs/wondergate.md.
  */
 #ifndef WG_H
 #define WG_H

@@ -272,9 +272,10 @@ static void cmd_dial(wg *g, const uint8_t *p, int n)
 static void cmd_hangup(wg *g)
 {
   /* Cmd 0B is call-state news: first byte 00 = connected (sent after dial),
-   * nonzero = line down (a real adapter sent 0B 02 for a busy line). Sennou
+   * nonzero = line down (WonderGateway's real-adapter capture, by Yuvi, shows
+   * 0B 02 for a busy line). Sennou
    * Millennium waits for a nonzero 0B after hanging up; Raku Jongg needs 4
-   * params. */
+   * params (WonderGateway's per-game testing). */
   static const uint8_t z[4] = { 1, 0, 0, 0 };
 
   logf_(g, "# hang up");
