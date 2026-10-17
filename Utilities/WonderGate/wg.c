@@ -271,17 +271,18 @@ static void cmd_dial(wg *g, const uint8_t *p, int n)
 
 static void cmd_hangup(wg *g)
 {
-  /* Cmd 0B is call-state news: first byte 00 = connected (sent after dial),
-   * nonzero = line down (WonderGateway's real-adapter capture, by Yuvi, shows
-   * 0B 02 for a busy line). Sennou
-   * Millennium waits for a nonzero 0B after hanging up; Raku Jongg needs 4
-   * params (WonderGateway's per-game testing). */
-  static const uint8_t z[4] = { 1, 0, 0, 0 };
+  /* Cmd 0B is call-state news: 00 = connected (sent after dial), Fx = line
+   * down (the games' libraries map F0 to error 007, "通信が切断されました").
+   * Wonder Classic checks this reply exactly: 5 bytes in all and (byte & F0)
+   * == F0, or it retries the hang-up three times (its code at 6000:0143 and
+   * table A000:0272). Other games ignore the byte. WonderGateway's capture
+   * (by Yuvi) shows 0B 02 for a busy line. */
+  static const uint8_t z[1] = { 0xF0 };
 
   logf_(g, "# hang up");
   close_all(g);
   g->status = WG_STAT_ON;
-  reply(g, 0x01, 0x0B, z, 4);
+  reply(g, 0x01, 0x0B, z, sizeof z);
 }
 
 static void cmd_ppp_login(wg *g, const uint8_t *p, int n)
