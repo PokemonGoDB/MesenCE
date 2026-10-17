@@ -368,8 +368,11 @@ static void cmd_socknew(wg *g)
 
 static void cmd_sockcon(wg *g, const uint8_t *p, int n)
 {
-  /* params: [sock][family hi][family lo][port lo][port hi][ip 4, network order] */
-  uint8_t r[2] = { 0, 0 };
+  /* params: [sock][family hi][family lo][port lo][port hi][ip 4, network order]
+   * Socket replies all start with the socket id they answer for: Tonpuusou and
+   * Lode Runner read it, Gather Beat retries on a mismatch, Dark Eyes checks it
+   * on close. */
+  uint8_t r[2] = { n > 0 ? p[0] : 0, 0 };
   int h = n > 0 ? host_sock(g, p[0]) : -1;
   uint16_t fam, port;
   const uint8_t *ip;
@@ -399,20 +402,22 @@ static void cmd_sockcon(wg *g, const uint8_t *p, int n)
 
 static void cmd_sockshutdown(wg *g, const uint8_t *p, int n)
 {
-  uint8_t ok = 1;
+  /* [sock][1]. Games need a reply here but ignore its contents (tested with
+   * 01, 00 and 00 01), so the shape follows the other socket replies. */
+  uint8_t r[2] = { n > 0 ? p[0] : 0, 1 };
   int h = n > 0 ? host_sock(g, p[0]) : -1;
 
   if (h >= 0)
     g->ops->sock_shutdown(g->ops->ctx, h, n > 1 ? p[1] : 2);
   logf_(g, "# shutdown %02X", n > 0 ? p[0] : 0xFF);
-  reply(g, 0x11, 0x06, &ok, 1);
+  reply(g, 0x11, 0x06, r, 2);
 }
 
 static void cmd_sockdel(wg *g, const uint8_t *p, int n)
 {
   /* 2 bytes, like connect: 00 01 = ok (Sennou Millennium checks for 1;
    * WonderGateway notes Rainbow Islands fails on a 1-byte reply). */
-  uint8_t r[2] = { 0, 0 };
+  uint8_t r[2] = { n > 0 ? p[0] : 0, 0 };
   int i = n > 0 ? (int)p[0] - WG_FIRST_SOCK : -1;
 
   if (i >= 0 && i < WG_MAX_SOCKS && g->sock[i] >= 0) {
@@ -426,7 +431,7 @@ static void cmd_sockdel(wg *g, const uint8_t *p, int n)
 
 static void cmd_socksend(wg *g, const uint8_t *p, int n)
 {
-  uint8_t r[2] = { 0, 0xFF };
+  uint8_t r[2] = { n > 0 ? p[0] : 0, 0xFF };
   int h = n > 0 ? host_sock(g, p[0]) : -1;
   char t[700];
 
@@ -475,7 +480,7 @@ static void cmd_sockrecv(wg *g, uint8_t cmd, const uint8_t *p, int n)
     }
   }
 
-  r[0] = 0;
+  r[0] = n > 0 ? p[0] : 0;
   if (got < 0) {
     r[1] = 0xFF;
     logf_(g, "# recv%s %02X: closed", cmd == 0x0D ? " line" : "", n > 0 ? p[0] : 0xFF);
