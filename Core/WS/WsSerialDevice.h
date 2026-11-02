@@ -18,6 +18,14 @@ public:
 	//Called at most once per byte time (the line's baud rate). Once returned, the byte is on the
 	//line: if the console can't take it (port off, previous byte unread) it is lost, as on hardware.
 	virtual bool Receive(uint8_t& value, uint64_t masterClock) = 0;
+
+	//When a byte arrives before the console read the last one, keep the newer byte (some link games need that;
+	//real hardware likely does it) rather than the older
+	virtual bool KeepNewerOnOverrun() { return false; }
+
+	//Linked to another console right now: save states, rewind and run-ahead can't take the other end back in
+	//time, so the emulator refuses them meanwhile
+	virtual bool IsLinked() { return false; }
 };
 
 //An environment variable, or "" (portable: MSVC treats getenv as unsafe)

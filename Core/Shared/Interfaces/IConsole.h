@@ -58,6 +58,10 @@ public:
 
 	virtual void SaveBattery() = 0;
 
+	//Linked to another console (a WonderSwan link play room): save states, rewind and run-ahead can't take the
+	//other console back in time, so they're refused while it's true
+	virtual bool IsLinkPlaying() { return false; }
+
 	virtual ShortcutState IsShortcutAllowed(EmulatorShortcut shortcut, uint32_t shortcutParam) { return ShortcutState::Default; }
 
 	virtual BaseControlManager* GetControlManager() = 0;

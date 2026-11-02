@@ -1,0 +1,36 @@
+<Window
+	xmlns="https://github.com/avaloniaui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:l="using:Mesen.Localization"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="300"
+	x:Class="Mesen.Windows.LinkPlayWindow"
+	Width="440" SizeToContent="Height" CanResize="False"
+	Title="{l:Translate wndTitle}"
+>
+	<StackPanel Margin="10" Spacing="10">
+		<TextBlock TextWrapping="Wrap" Text="{l:Translate lblIntro}" />
+		<Button Name="btnLobby" Click="Lobby_OnClick" Content="{l:Translate btnLobby}" />
+
+		<Grid ColumnDefinitions="Auto,1*,Auto" Name="pnlJoin">
+			<TextBlock VerticalAlignment="Center" Margin="0,0,6,0" Text="{l:Translate lblCode}" />
+			<TextBox Grid.Column="1" Name="txtCode" PlaceholderText="K7M2QD" MaxLength="8" />
+			<Button Grid.Column="2" Margin="6,0,0,0" Name="btnJoin" Click="Join_OnClick" IsDefault="True" Content="{l:Translate btnJoin}" />
+		</Grid>
+
+		<Border BorderThickness="1" BorderBrush="Gray" Padding="8">
+			<StackPanel Spacing="4">
+				<TextBlock Name="lblStatus" TextWrapping="Wrap" FontWeight="Bold" />
+				<TextBlock Name="lblDetail" TextWrapping="Wrap" />
+			</StackPanel>
+		</Border>
+
+		<StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+			<Button Name="btnReady" Click="Ready_OnClick" Content="{l:Translate btnReady}" IsVisible="False" />
+			<Button Name="btnLeave" Click="Leave_OnClick" Content="{l:Translate btnLeave}" IsVisible="False" />
+		</StackPanel>
+
+		<TextBlock TextWrapping="Wrap" FontSize="11" Foreground="Gray" Text="{l:Translate lblNote}" />
+	</StackPanel>
+</Window>

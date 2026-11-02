@@ -93,6 +93,7 @@ public partial class WsConfig : BaseConfig<WsConfig>
 
 			WonderGateEnabled = WonderGateEnabled && relay.Running,
 			WonderGateRelayPort = relay.Port,
+			LinkRelayPort = LinkRoomRelay.Instance.Port,
 		});
 	}
 
@@ -133,6 +134,8 @@ public struct InteropWsConfig
 
 	[MarshalAs(UnmanagedType.I1)] public bool WonderGateEnabled;
 	public UInt16 WonderGateRelayPort;
+	//Link play: the room's local port while in one (LinkRoomRelay), 0 otherwise
+	public UInt16 LinkRelayPort;
 }
 
 public enum WsModel : byte

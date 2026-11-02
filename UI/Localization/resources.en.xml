@@ -843,6 +843,16 @@
 			<Control ID="btnOK">OK</Control>
 			<Control ID="btnCancel">Cancel</Control>
 		</Form>
+		<Form ID="LinkPlayWindow">
+			<Control ID="wndTitle">Link play</Control>
+			<Control ID="lblIntro">Play WonderSwan link-cable games with someone far away: both consoles join a room on Swan Revival, and the room carries the cable between them. Open a room, or find one, on the site, then enter its code here.</Control>
+			<Control ID="btnLobby">Open the lobby (swanrevival.com/link-play)</Control>
+			<Control ID="lblCode">Room code:</Control>
+			<Control ID="btnJoin">Join</Control>
+			<Control ID="btnReady">My console is ready</Control>
+			<Control ID="btnLeave">Leave</Control>
+			<Control ID="lblNote">Rooms need a linked account (Settings, WonderSwan, WonderGate). While you're linked, save states, rewind and run-ahead are off: the other console can't go back in time too.</Control>
+		</Form>
 		<Form ID="NetplayConnectWindow">
 			<Control ID="wndTitle">Connect to server...</Control>
 			<Control ID="lblHost">Host:</Control>
@@ -1797,6 +1807,31 @@
 		<Message ID="WonderGateLinkedAs">Linked as {0} on {1}.</Message>
 		<Message ID="WonderGateLinking">Linking...</Message>
 		<Message ID="WonderGateLinkFailed">Couldn't link: {0}</Message>
+		<Message ID="LinkPlay_Idle">Not in a room.</Message>
+		<Message ID="LinkPlay_BadCode">A room code is 6 letters and numbers, like K7M2QD.</Message>
+		<Message ID="LinkPlay_Joining">Joining room {0}...</Message>
+		<Message ID="LinkPlay_InRoom">Room {0}: {1}, hosted by {2}</Message>
+		<Message ID="LinkPlay_LoadGame">Load {0} to plug the cable in. The console restarts with the cable in.</Message>
+		<Message ID="LinkPlay_WaitingPeer">Waiting for the other player.</Message>
+		<Message ID="LinkPlay_PeerHere">{0} is here. Go to the game's link menu, then press "My console is ready".</Message>
+		<Message ID="LinkPlay_WaitingReady">Ready. Waiting for {0}.</Message>
+		<Message ID="LinkPlay_Linked">Linked with {0}</Message>
+		<Message ID="LinkPlay_Bytes">{0} bytes sent, {1} received.</Message>
+		<Message ID="LinkPlay_Ping"> Ping {0} ms.</Message>
+		<Message ID="LinkPlay_Ended">Not in a room.</Message>
+		<Message ID="LinkPlay_BadServer">The WonderGate server address isn't a ws:// or wss:// address (Settings, WonderSwan, WonderGate).</Message>
+		<Message ID="LinkPlay_NeedLink">Rooms need a linked account: link this computer in Settings, WonderSwan, WonderGate.</Message>
+		<Message ID="LinkPlay_NeedName">Pick a name on your account page at swanrevival.com first.</Message>
+		<Message ID="LinkPlay_Unreachable">Can't reach the room. Check the internet connection.</Message>
+		<Message ID="LinkPlay_Lost">Lost the connection to the room.</Message>
+		<Message ID="LinkPlay_Closed">The room ended.</Message>
+		<Message ID="LinkPlay_Left">The other player left, so the room is over.</Message>
+		<Message ID="LinkPlay_NoRoom">There's no room with that code. It may have ended.</Message>
+		<Message ID="LinkPlay_Full">That room already has two players.</Message>
+		<Message ID="LinkPlay_Kicked">The host removed you from the room.</Message>
+		<Message ID="LinkPlay_HostClosed">The host closed the room.</Message>
+		<Message ID="LinkPlay_Limit">The room ended: it reached a time or data limit.</Message>
+		<Message ID="LinkPlay_Version">This MesenCE is too old for the server. Update it.</Message>
 		<Message ID="WonderGateLinkPrompt">You're playing online through WonderGate, but this computer isn't linked to a Swan Revival account, so your scores are posted without your name.&#xA;&#xA;Link it now? Sign in at swanrevival.com, choose "Link a console", then enter the code on the WonderGate tab. Both open when you choose Yes.&#xA;&#xA;Choose No to stop asking. You can link any time in Settings, WonderSwan, WonderGate.</Message>
 		<Message ID="LastSession">Last Session</Message>
 		<Message ID="AutoSave">Auto-save</Message>
@@ -3666,6 +3701,7 @@ E
 			<Value ID="Tools">Tools</Value>
 			<Value ID="HistoryViewer">History Viewer</Value>
 			<Value ID="NetPlay">Net Play</Value>
+			<Value ID="LinkPlay">Link play (WonderSwan)...</Value>
 			<Value ID="StartServer">Start server...</Value>
 			<Value ID="StopServer">Stop server</Value>
 			<Value ID="Connect">Connect to server...</Value>

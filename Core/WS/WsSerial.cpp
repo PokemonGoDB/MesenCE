@@ -100,8 +100,12 @@ void WsSerial::UpdateReceive()
 	if(!_state.Enabled) {
 		//The port is off: the byte is lost
 	} else if(_state.HasReceiveData) {
-		//The previous byte hasn't been read: this one is lost (status bit 1 until cleared with control bit 5)
+		//The previous byte hasn't been read: overrun (status bit 1 until cleared with control bit 5). This keeps the
+		//older byte and loses the new one, unless the device says the game needs the newer (some link games do)
 		_state.ReceiveOverflow = true;
+		if(_device->KeepNewerOnOverrun()) {
+			_state.ReceiveBuffer = value;
+		}
 	} else {
 		_state.ReceiveBuffer = value;
 		_state.HasReceiveData = true;

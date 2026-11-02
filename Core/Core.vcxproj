@@ -816,6 +816,7 @@
     <ClInclude Include="WS\WsSerialDevice.h" />
     <ClInclude Include="WS\WsSerialTcpDevice.h" />
     <ClInclude Include="WS\WsWonderGateDevice.h" />
+    <ClInclude Include="WS\WsLinkRoomDevice.h" />
     <ClInclude Include="WS\WsTimer.h" />
     <ClInclude Include="WS\WsTypes.h" />
   </ItemGroup>
@@ -1134,6 +1135,7 @@
     <ClCompile Include="WS\WsSerial.cpp" />
     <ClCompile Include="WS\WsSerialTcpDevice.cpp" />
     <ClCompile Include="WS\WsWonderGateDevice.cpp" />
+    <ClCompile Include="WS\WsLinkRoomDevice.cpp" />
     <ClCompile Include="WS\WsTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
