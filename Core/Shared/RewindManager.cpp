@@ -176,6 +176,10 @@ void RewindManager::PopHistory()
 
 void RewindManager::Start(bool forDebugger)
 {
+	if(!forDebugger && _emu->GetConsole() && _emu->GetConsole()->IsLinkPlaying()) {
+		MessageManager::DisplayMessage("LinkPlay", "LinkPlayNotAllowed");
+		return;
+	}
 	if(_rewindState == RewindState::Stopped && _settings->GetPreferences().RewindBufferSize > 0) {
 		if(forDebugger) {
 			InternalStart(forDebugger);

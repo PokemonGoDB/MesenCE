@@ -840,6 +840,14 @@ namespace Mesen.ViewModels
 				GetMoviesMenu(wnd),
 				GetNetPlayMenu(wnd),
 
+				//WonderSwan link play: two consoles linked through a room on the WonderGate server
+				new MainMenuAction() {
+					ActionType = ActionType.LinkPlay,
+					OnClick = () => {
+						ApplicationHelper.GetOrCreateUniqueWindow(wnd, () => new LinkPlayWindow());
+					}
+				},
+
 				new ContextMenuSeparator(),
 
 				GetSoundRecorderMenu(wnd),

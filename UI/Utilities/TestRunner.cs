@@ -28,6 +28,25 @@ namespace Mesen.Utilities
 			int timeout = commandLineHelper.TestRunnerTimeout;
 			ConfigManager.Config.ApplyConfig();
 
+			//Link play tests (the site repo's scripts): join MESEN_LINK_ROOM on MESEN_LINK_SERVER with MESEN_LINK_TOKEN
+			//before the game loads, so the console starts with the cable in, and say ready once there's a partner
+			string linkRoom = Environment.GetEnvironmentVariable("MESEN_LINK_ROOM") ?? "";
+			if(linkRoom.Length > 0) {
+				string server = Environment.GetEnvironmentVariable("MESEN_LINK_SERVER") ?? WsConfig.DefaultWonderGateServer;
+				string token = Environment.GetEnvironmentVariable("MESEN_LINK_TOKEN") ?? "";
+				bool plugged = false;
+				LinkRoomRelay.Instance.Join(linkRoom, server, token, () => plugged = true, autoReady: true).Wait();
+				Stopwatch wait = Stopwatch.StartNew();
+				while(!plugged && LinkRoomRelay.Instance.State != LinkRoomRelay.Stage.Ended && wait.ElapsedMilliseconds < 10000) {
+					System.Threading.Thread.Sleep(20);
+				}
+				if(!plugged) {
+					Console.Error.WriteLine("link play: couldn't join " + linkRoom + " (" + LinkRoomRelay.Instance.Problem + ")");
+					return -2;
+				}
+				ConfigManager.Config.ApplyConfig();
+			}
+
 			EmuApi.InitializeEmu(ConfigManager.HomeFolder, IntPtr.Zero, IntPtr.Zero, true, true, true, true);
 			EmuApi.Pause();
 
@@ -47,7 +66,10 @@ namespace Mesen.Utilities
 				} catch { }
 			}
 
-			ConfigApi.SetEmulationFlag(EmulationFlags.MaximumSpeed, true);
+			//Link play runs in real time, as two players would: MESEN_TESTRUNNER_SPEED=normal
+			if(Environment.GetEnvironmentVariable("MESEN_TESTRUNNER_SPEED") != "normal") {
+				ConfigApi.SetEmulationFlag(EmulationFlags.MaximumSpeed, true);
+			}
 			EmuApi.Resume();
 
 			int result = -1;

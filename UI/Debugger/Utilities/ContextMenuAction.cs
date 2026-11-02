@@ -594,6 +594,7 @@ namespace Mesen.Debugger.Utilities
 
 		[IconFile("Network")]
 		NetPlay,
+		LinkPlay,
 		Connect,
 		Disconnect,
 		StartServer,

@@ -16,6 +16,7 @@
 #include "WS/WsSerialDevice.h"
 #include "WS/WsSerialTcpDevice.h"
 #include "WS/WsWonderGateDevice.h"
+#include "WS/WsLinkRoomDevice.h"
 #include "WS/WsDefaultVideoFilter.h"
 #include "WS/APU/WsApu.h"
 #include "Shared/CpuType.h"
@@ -170,10 +171,14 @@ LoadRomResult WsConsole::LoadRom(VirtualFile& romFile)
 	_cpu.reset(new WsCpu(_emu, this, _memoryManager.get()));
 	_timer.reset(new WsTimer());
 	_serial.reset(new WsSerial(_emu, this));
-	//EXT port: a TCP serial bridge if MESEN_WS_SERIAL_TCP is set (development, link tools),
-	//otherwise the WonderGate adapter when it's switched on and the UI's relay is listening
+	//EXT port: a TCP serial bridge if MESEN_WS_SERIAL_TCP is set (development, link tools), a link play room when
+	//the UI is in one, otherwise the WonderGate adapter when it's switched on and the UI's relay is listening
 	WsConfig& wsCfg = _emu->GetSettings()->GetWsConfig();
 	_serialDevice = WsSerialTcpDevice::FromEnvironment();
+	if(!_serialDevice && wsCfg.LinkRelayPort) {
+		_serialDevice.reset(new WsLinkRoomDevice(wsCfg.LinkRelayPort));
+		MessageManager::Log("[WS] Link play: the EXT port goes to a room");
+	}
 	if(!_serialDevice && wsCfg.WonderGateEnabled && wsCfg.WonderGateRelayPort) {
 		_serialDevice.reset(new WsWonderGateDevice(wsCfg.WonderGateRelayPort));
 		MessageManager::Log("[WS] WonderGate adapter connected to the EXT port");
@@ -618,4 +623,9 @@ void WsConsole::Serialize(Serializer& s)
 	if(_cartRtc) {
 		SV(_cartRtc);
 	}
+}
+
+bool WsConsole::IsLinkPlaying()
+{
+	return _serialDevice && _serialDevice->IsLinked();
 }

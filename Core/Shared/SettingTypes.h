@@ -857,6 +857,10 @@ struct WsConfig
 	//through a local relay port (0 = not listening).
 	bool WonderGateEnabled = false;
 	uint16_t WonderGateRelayPort = 0;
+
+	//Link play: the UI holds a room's connection on this local port (0 = not in a room). Takes the EXT port
+	//instead of the WonderGate adapter at the next power-on.
+	uint16_t LinkRelayPort = 0;
 };
 
 struct AudioPlayerConfig

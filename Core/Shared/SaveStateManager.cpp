@@ -160,6 +160,9 @@ bool SaveStateManager::LoadState(istream& stream)
 	} else if(_emu->GetGameClient()->Connected()) {
 		MessageManager::DisplayMessage("Netplay", "NetplayNotAllowed");
 		return false;
+	} else if(_emu->GetConsole()->IsLinkPlaying()) {
+		MessageManager::DisplayMessage("LinkPlay", "LinkPlayNotAllowed");
+		return false;
 	}
 
 	char header[3];

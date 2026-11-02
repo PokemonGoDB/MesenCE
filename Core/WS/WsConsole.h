@@ -88,6 +88,7 @@ public:
 	void Reset() override;
 	void LoadBattery();
 	void SaveBattery() override;
+	bool IsLinkPlaying() override;
 
 	BaseControlManager* GetControlManager() override;
 	ConsoleRegion GetRegion() override;
