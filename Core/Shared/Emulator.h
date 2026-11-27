@@ -267,6 +267,8 @@ public:
 	AudioPlayerHud* GetAudioPlayerHud() { return _audioPlayerHud.get(); }
 
 	bool IsRunning() { return _console != nullptr; }
+	//Stop() was called and is waiting for the emulation thread: code that keeps that thread waiting should give up
+	bool IsStopping() { return _stopFlag; }
 	bool IsRunAheadFrame() { return _isRunAheadFrame; }
 
 	TimingInfo GetTimingInfo(CpuType cpuType);

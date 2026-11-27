@@ -180,7 +180,7 @@ LoadRomResult WsConsole::LoadRom(VirtualFile& romFile)
 		MessageManager::Log("[WS] Link play: the EXT port goes to a room");
 	}
 	if(!_serialDevice && wsCfg.WonderGateEnabled && wsCfg.WonderGateRelayPort) {
-		_serialDevice.reset(new WsWonderGateDevice(wsCfg.WonderGateRelayPort));
+		_serialDevice.reset(new WsWonderGateDevice(_emu, wsCfg.WonderGateRelayPort));
 		MessageManager::Log("[WS] WonderGate adapter connected to the EXT port");
 	}
 	_serial->SetDevice(_serialDevice.get());

@@ -110,10 +110,17 @@ void wg_config_defaults(wg_config *cfg)
     "homepage2.nifty.com",  /* Doraemon (developer test URLs) */
     "hpcgi2.nifty.com",
     "www.gwp3d.com",        /* in Digimon, Doraemon, Wonder Classic; purpose unknown */
+    /* Two factory bookmarks of the MobileWonderGate cart. "game" has no domain
+     * (the original lookup is unknown); Docomo's page for the cart is gone, and
+     * without this the request went to Docomo's site of today. */
+    "game",
+    "www.nttdocomo.co.jp",
     WG_LINK_HOST,           /* ours: link-cable stage uploads (Lode Runner) */
   };
   size_t i;
 
+  /* Compile-time: the list fits, with room left for a config's own redirect lines. */
+  (void)sizeof(char[sizeof names / sizeof names[0] <= WG_MAX_REDIRECTS / 2 ? 1 : -1]);
   memset(cfg, 0, sizeof *cfg);
   cfg->reception = 15;
   strcpy(cfg->server, "127.0.0.1");
@@ -445,12 +452,26 @@ static void cmd_socksend(wg *g, const uint8_t *p, int n)
   reply(g, 0x11, 0x0E, r, 2);
 }
 
+/* The first read of a receive command. wait_s is the command's third
+ * parameter, read as the game's own wait in seconds (05 to 1E by game, none in
+ * some; wondergate/README.md, "The game's receive wait", has what that reading
+ * rests on). A platform with sock_recv_wait waits that long before "nothing
+ * yet"; without the op, or without a value, the platform's short wait applies
+ * as before. */
+static int recv_first(wg *g, int h, uint8_t *buf, size_t len, int wait_s)
+{
+  if (wait_s > 0 && g->ops->sock_recv_wait)
+    return g->ops->sock_recv_wait(g->ops->ctx, h, buf, len, (uint32_t)wait_s * 1000);
+  return g->ops->sock_recv(g->ops->ctx, h, buf, len);
+}
+
 static void cmd_sockrecv(wg *g, uint8_t cmd, const uint8_t *p, int n)
 {
-  /* 0x0F = up to len bytes; 0x0D = one line, up to and including '\n'. */
+  /* 0x0F = up to len bytes; 0x0D = one line, up to and including '\n'.
+   * params: [sock][len][wait, seconds; not sent by every game] */
   uint8_t r[2 + 250];
   int h = n > 0 ? host_sock(g, p[0]) : -1;
-  int want = n > 1 ? p[1] : 0, got = 0;
+  int want = n > 1 ? p[1] : 0, wait_s = n > 2 ? p[2] : 0, got = 0;
   char t[700];
 
   if (want > 250)
@@ -460,14 +481,21 @@ static void cmd_sockrecv(wg *g, uint8_t cmd, const uint8_t *p, int n)
   if (h < 0) {
     got = -1;
   } else if (cmd == 0x0F) {
-    got = want ? g->ops->sock_recv(g->ops->ctx, h, r + 2, (size_t)want) : 0;
+    got = want ? recv_first(g, h, r + 2, (size_t)want, wait_s) : 0;
     if (got == WG_RECV_NODATA)
       got = 0;
-    else if (want && got <= 0)
+    else if (want && got <= 0 && got != WG_RECV_DROPPED)
       got = -1;
   } else {
     while (got < want) {
-      int n = g->ops->sock_recv(g->ops->ctx, h, r + 2 + got, 1);
+      /* The game's wait is for the line to start; once it has, the rest
+       * follows at the platform's short wait. */
+      int n = got ? g->ops->sock_recv(g->ops->ctx, h, r + 2 + got, 1)
+                  : recv_first(g, h, r + 2, 1, wait_s);
+      if (n == WG_RECV_DROPPED) {
+        got = n;
+        break;
+      }
       if (n == WG_RECV_NODATA)
         break;
       if (n <= 0) {
@@ -480,6 +508,11 @@ static void cmd_sockrecv(wg *g, uint8_t cmd, const uint8_t *p, int n)
     }
   }
 
+  if (got == WG_RECV_DROPPED) {
+    logf_(g, "# recv%s %02X: the console sent again before its wait ran out, no answer",
+          cmd == 0x0D ? " line" : "", p[0]);
+    return;
+  }
   r[0] = n > 0 ? p[0] : 0;
   if (got < 0) {
     r[1] = 0xFF;
