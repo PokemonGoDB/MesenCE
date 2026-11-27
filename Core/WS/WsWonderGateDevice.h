@@ -9,6 +9,7 @@ extern "C"
 }
 
 class Socket;
+class Emulator;
 
 //The MobileWonderGate adapter (Bandai, 2001), emulated in the EXT port.
 //The adapter protocol is wgcore (Utilities/WonderGate). Its TCP connections go to local relay
@@ -24,6 +25,7 @@ private:
 		bool AwaitingReply = false;
 	};
 
+	Emulator* _emu = nullptr;
 	wg _gate = {};
 	wg_ops _ops = {};
 	wg_config _config = {};
@@ -33,6 +35,9 @@ private:
 	uint16_t _relayPort = 0;
 
 	uint64_t _lastSendClock = 0;
+	//A receive waited as long as the game asked and nothing came: its "nothing yet" answer stays here until
+	//the console's clock has passed that wait too (the emulation stood still meanwhile)
+	uint64_t _holdUntil = 0;
 
 	uint64_t _lastResetClock = 0; //last wg_rx_reset: once per quiet gap, as in the reference emulator
 	std::ofstream _trace;
@@ -43,14 +48,17 @@ private:
 	static int SockConnect(void* ctx, int h, const uint8_t ip[4], uint16_t port);
 	static int SockSend(void* ctx, int h, const uint8_t* buf, size_t len);
 	static int SockRecv(void* ctx, int h, uint8_t* buf, size_t len);
+	static int SockRecvWait(void* ctx, int h, uint8_t* buf, size_t len, uint32_t waitMs);
 	static void SockShutdown(void* ctx, int h, int how);
 	static void SockClose(void* ctx, int h);
 	static void Log(void* ctx, const char* line);
 
 	Connection* Get(int h);
+	int Read(Connection& c, uint8_t* buf, size_t len, uint32_t waitMs);
+	bool ConsoleEnding();
 
 public:
-	WsWonderGateDevice(uint16_t relayPort);
+	WsWonderGateDevice(Emulator* emu, uint16_t relayPort);
 	~WsWonderGateDevice();
 
 	void OnSend(uint8_t value, uint64_t masterClock) override;

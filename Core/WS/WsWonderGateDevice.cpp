@@ -3,6 +3,8 @@
 #include <thread>
 #include <ctime>
 #include "WS/WsWonderGateDevice.h"
+#include "Shared/Emulator.h"
+#include "Shared/SystemActionManager.h"
 #include "Utilities/Socket.h"
 
 //A real adapter drops a half-received frame after a pause; about 100 ms of master clock
@@ -18,11 +20,16 @@ static constexpr uint64_t QuietLineClocks = 3200 * 2;
 //timeouts (the emulation pauses briefly, as it would have on the phone line). Some games give up on
 //the first empty reply, so this covers a whole first exchange on a slow connection: opening the
 //tunnel (TLS) plus the server's work, often far from its database. Idle sockets that the game is
-//only polling are answered immediately with "no data".
+//only polling are answered immediately with "no data". A receive that carries the game's own wait
+//(most do) waits that long instead: SockRecvWait.
 static constexpr int ReplyWaitMs = 6000;
 
-WsWonderGateDevice::WsWonderGateDevice(uint16_t relayPort)
+//The WonderSwan's master clock
+static constexpr uint64_t ClocksPerMs = 3072;
+
+WsWonderGateDevice::WsWonderGateDevice(Emulator* emu, uint16_t relayPort)
 {
+	_emu = emu;
 	_relayPort = relayPort;
 
 	//Debug trace in the game server project's adapter.log format
@@ -38,6 +45,7 @@ WsWonderGateDevice::WsWonderGateDevice(uint16_t relayPort)
 	_ops.sock_connect = &WsWonderGateDevice::SockConnect;
 	_ops.sock_send = &WsWonderGateDevice::SockSend;
 	_ops.sock_recv = &WsWonderGateDevice::SockRecv;
+	_ops.sock_recv_wait = &WsWonderGateDevice::SockRecvWait;
 	_ops.sock_shutdown = &WsWonderGateDevice::SockShutdown;
 	_ops.sock_close = &WsWonderGateDevice::SockClose;
 	_ops.log = _trace.is_open() ? &WsWonderGateDevice::Log : nullptr;
@@ -56,6 +64,13 @@ WsWonderGateDevice::~WsWonderGateDevice()
 
 void WsWonderGateDevice::OnSend(uint8_t value, uint64_t masterClock)
 {
+	if(masterClock < _holdUntil) {
+		//The game gave up on its receive before the wait it asked for ran out: it never gets that
+		//answer (it would take a late one for the answer to what it sends now)
+		_toConsole.clear();
+		Log(this, "# the console sent again before its receive wait ran out: that answer is not delivered");
+	}
+	_holdUntil = 0;
 	_lastSendClock = masterClock;
 	wg_rx(&_gate, value);
 }
@@ -70,7 +85,7 @@ bool WsWonderGateDevice::Receive(uint8_t& value, uint64_t masterClock)
 		wg_rx_reset(&_gate);
 	}
 
-	if(_toConsole.empty() || masterClock - _lastSendClock < QuietLineClocks) {
+	if(_toConsole.empty() || masterClock - _lastSendClock < QuietLineClocks || masterClock < _holdUntil) {
 		return false;
 	}
 	value = _toConsole.front();
@@ -158,25 +173,59 @@ int WsWonderGateDevice::SockRecv(void* ctx, int h, uint8_t* buf, size_t len)
 	if(!c) {
 		return 0;
 	}
+	//Wait only if the game is expecting an answer to what it sent
+	return self->Read(*c, buf, len, c->AwaitingReply ? ReplyWaitMs : 0);
+}
 
+int WsWonderGateDevice::SockRecvWait(void* ctx, int h, uint8_t* buf, size_t len, uint32_t waitMs)
+{
+	WsWonderGateDevice* self = (WsWonderGateDevice*)ctx;
+	Connection* c = self->Get(h);
+	if(!c) {
+		return 0;
+	}
+
+	//The game said how long this receive may wait (5 to 30 seconds, by game): wait that long before
+	//"nothing yet", whether or not it sent anything first. Terrors 2 takes that answer for a line of
+	//the reply, so it mustn't come while the server is only slow. A reply the game is expecting
+	//still gets ReplyWaitMs when the game's wait is shorter (5 s in Terrors 2), as it always has.
+	int n = self->Read(*c, buf, len, std::max<uint32_t>(waitMs, c->AwaitingReply ? ReplyWaitMs : 0));
+	if(n == WG_RECV_NODATA && !self->ConsoleEnding()) {
+		//The emulation stood still for that wait, so for the game no time has passed. A real adapter
+		//says "nothing yet" when the wait ends: hold the answer that long on the console's clock.
+		self->_holdUntil = self->_lastSendClock + waitMs * ClocksPerMs;
+	}
+	return n;
+}
+
+int WsWonderGateDevice::Read(Connection& c, uint8_t* buf, size_t len, uint32_t waitMs)
+{
 	auto start = std::chrono::steady_clock::now();
 	while(true) {
-		int n = c->Sock->Recv((char*)buf, (int)len, 0);
+		int n = c.Sock->Recv((char*)buf, (int)len, 0);
 		if(n > 0) {
-			c->AwaitingReply = false;
+			c.AwaitingReply = false;
 			return n;
 		}
-		if(n == 0 || c->Sock->ConnectionError()) {
+		if(n == 0 || c.Sock->ConnectionError()) {
 			return 0; //closed
 		}
 
-		//Nothing yet: wait only if the game is expecting an answer to what it sent
+		//Nothing yet. This wait holds the emulation thread, which Stop() joins: give up at once when
+		//the console is on its way out, or closing the window would take as long as the wait
 		auto waited = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-		if(!c->AwaitingReply || waited >= ReplyWaitMs) {
+		if(waited >= (int64_t)waitMs || ConsoleEnding()) {
 			return WG_RECV_NODATA;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
+}
+
+bool WsWonderGateDevice::ConsoleEnding()
+{
+	//Power off, the window closing, or a power cycle asked for (the WS has no reset): nobody will
+	//read the answer
+	return _emu->IsStopping() || _emu->GetSystemActionManager()->IsResetPending();
 }
 
 void WsWonderGateDevice::SockShutdown(void* ctx, int h, int how)

@@ -24,6 +24,7 @@
 #define WG_MAX_PORTMAPS  8
 #define WG_NAME_LEN      64
 #define WG_RECV_NODATA   (-2)
+#define WG_RECV_DROPPED  (-3)
 
 /* Largest payload (cmd + params) the adapter accepts from the console. */
 #define WG_MAX_PAYLOAD   145
@@ -51,12 +52,23 @@ typedef struct wg_ops {
   void (*sock_close)(void *ctx, int h);
   /* One line of log text, no newline. May be NULL. */
   void (*log)(void *ctx, const char *line);
+  /* Optional, may be NULL (new ops go here, at the end, so older platform
+   * tables keep working). The receive commands carry the game's own wait in
+   * seconds; a platform with this op honours it: like sock_recv, but nothing
+   * arriving for wait_ms (not the platform's short wait) = WG_RECV_NODATA.
+   * How to wait is the platform's business (block, suspend, serve a link).
+   * A platform whose console keeps running meanwhile returns WG_RECV_DROPPED
+   * as soon as the console sends again: the game gave up on this receive, so
+   * it gets no answer (a late one would be taken for the next command's).
+   * Without the op every receive uses sock_recv, as before it existed. */
+  int  (*sock_recv_wait)(void *ctx, int h, uint8_t *buf, size_t len, uint32_t wait_ms);
 } wg_ops;
 
 typedef struct wg_config {
   uint8_t reception;                       /* 0-15 bars reported to games */
   char    server[WG_NAME_LEN];             /* where redirected names go */
-  /* Names sent to `server`. "*.example.jp" matches the domain and all subdomains. */
+  /* Names sent to `server`. "*.example.jp" matches the domain and all subdomains.
+   * The built-in list (wg_config_defaults) comes first; config lines add to it. */
   char    redirect[WG_MAX_REDIRECTS][WG_NAME_LEN];
   int     n_redirect;
   /* Port remaps for connections to `server` (dev: unprivileged ports). */
